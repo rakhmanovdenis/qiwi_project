@@ -1,0 +1,397 @@
+{
+  "info": {
+    "_postman_id": "a49c6f29-bcdf-4841-bf72-69034689c24d",
+    "name": "QIWI Payout API v1 - Test Task",
+    "description": "Postman collection for QIWI Payout API v1 test task.\n\nCovers:\n1. Service availability via GET payments list\n2. Balance request with balance > 0 check\n3. Payment creation for 1 RUB\n4. Payment execution\n\nCredentials are placeholders. Replace collection/environment variables before running against a real service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Collection-level pre-request script.",
+          "// Variables are stored as placeholders for the test task."
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api-test.qiwi.com/partner/payout",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "YOUR_AGENT_ID",
+      "type": "string"
+    },
+    {
+      "key": "pointId",
+      "value": "YOUR_POINT_ID",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "providerCode",
+      "value": "qiwi-wallet",
+      "type": "string"
+    },
+    {
+      "key": "account",
+      "value": "79123456789",
+      "type": "string"
+    },
+    {
+      "key": "amount",
+      "value": "1.00",
+      "type": "string"
+    },
+    {
+      "key": "currency",
+      "value": "RUB",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Service availability - Get payments list",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/agents/{{agentId}}/points/{{pointId}}/payments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "agents",
+            "{{agentId}}",
+            "points",
+            "{{pointId}}",
+            "payments"
+          ]
+        },
+        "description": "Checks service availability using the payments list method. Expected response format: JSON array. If response format is different from documentation, the service/API contract may be unavailable or changed."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const contentType = pm.response.headers.get('Content-Type') || '';",
+              "pm.test('Response has JSON content type', function () {",
+              "    pm.expect(contentType.toLowerCase()).to.include('application/json');",
+              "});",
+              "",
+              "const payments = pm.response.json();",
+              "pm.test('Response is an array', function () {",
+              "    pm.expect(payments).to.be.an('array');",
+              "});",
+              "",
+              "if (Array.isArray(payments) && payments.length > 0) {",
+              "    pm.test('Payment item has expected structure', function () {",
+              "        pm.expect(payments[0]).to.have.property('paymentId');",
+              "        pm.expect(payments[0]).to.have.property('status');",
+              "        pm.expect(payments[0].status).to.have.property('value');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Balance - Get balance",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/agents/{{agentId}}/points/{{pointId}}/balance",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "agents",
+            "{{agentId}}",
+            "points",
+            "{{pointId}}",
+            "balance"
+          ]
+        },
+        "description": "Checks balance endpoint. Key test condition: balance value is greater than 0."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const balanceInfo = pm.response.json();",
+              "",
+              "pm.test('Response has expected balance fields', function () {",
+              "    pm.expect(balanceInfo).to.have.property('balance');",
+              "    pm.expect(balanceInfo).to.have.property('available');",
+              "    pm.expect(balanceInfo.balance).to.have.property('value');",
+              "    pm.expect(balanceInfo.balance).to.have.property('currency');",
+              "    pm.expect(balanceInfo.available).to.have.property('value');",
+              "    pm.expect(balanceInfo.available).to.have.property('currency');",
+              "});",
+              "",
+              "pm.test('Balance currency is RUB', function () {",
+              "    pm.expect(balanceInfo.balance.currency).to.eql('RUB');",
+              "});",
+              "",
+              "pm.test('Balance is greater than 0', function () {",
+              "    pm.expect(Number(balanceInfo.balance.value)).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Available balance is greater than 0', function () {",
+              "    pm.expect(Number(balanceInfo.available.value)).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Payment - Create payment for 1 RUB",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const paymentId = pm.variables.replaceIn('{{$guid}}');",
+              "pm.collectionVariables.set('paymentId', paymentId);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const payment = pm.response.json();",
+              "const paymentId = pm.collectionVariables.get('paymentId');",
+              "",
+              "pm.test('Payment id matches generated id', function () {",
+              "    pm.expect(payment.paymentId).to.eql(paymentId);",
+              "});",
+              "",
+              "pm.test('Payment status is READY', function () {",
+              "    pm.expect(payment).to.have.property('status');",
+              "    pm.expect(payment.status.value).to.eql('READY');",
+              "});",
+              "",
+              "pm.test('Payment amount is 1 RUB', function () {",
+              "    pm.expect(payment.amount.value).to.eql(pm.collectionVariables.get('amount'));",
+              "    pm.expect(payment.amount.currency).to.eql(pm.collectionVariables.get('currency'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": {\n    \"value\": \"{{amount}}\",\n    \"currency\": \"{{currency}}\"\n  },\n  \"recipientDetails\": {\n    \"providerCode\": \"{{providerCode}}\",\n    \"fields\": {\n      \"account\": \"{{account}}\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/agents/{{agentId}}/points/{{pointId}}/payments/{{paymentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "agents",
+            "{{agentId}}",
+            "points",
+            "{{pointId}}",
+            "payments",
+            "{{paymentId}}"
+          ]
+        },
+        "description": "Creates a payment request for 1 RUB. paymentId is generated in the pre-request script and saved to collection variables."
+      },
+      "response": []
+    },
+    {
+      "name": "04 Payment - Execute payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/agents/{{agentId}}/points/{{pointId}}/payments/{{paymentId}}/execute",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "agents",
+            "{{agentId}}",
+            "points",
+            "{{pointId}}",
+            "payments",
+            "{{paymentId}}",
+            "execute"
+          ]
+        },
+        "description": "Executes the payment created in the previous request."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const payment = pm.response.json();",
+              "",
+              "pm.test('Payment id matches generated id', function () {",
+              "    pm.expect(payment.paymentId).to.eql(pm.collectionVariables.get('paymentId'));",
+              "});",
+              "",
+              "pm.test('Payment status is IN_PROGRESS or COMPLETED', function () {",
+              "    pm.expect(payment).to.have.property('status');",
+              "    pm.expect(['IN_PROGRESS', 'COMPLETED']).to.include(payment.status.value);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Payment - Get created payment status",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/agents/{{agentId}}/points/{{pointId}}/payments/{{paymentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "agents",
+            "{{agentId}}",
+            "points",
+            "{{pointId}}",
+            "payments",
+            "{{paymentId}}"
+          ]
+        },
+        "description": "Optional check: gets the created payment by id and validates basic payment structure."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const payment = pm.response.json();",
+              "",
+              "pm.test('Payment id matches generated id', function () {",
+              "    pm.expect(payment.paymentId).to.eql(pm.collectionVariables.get('paymentId'));",
+              "});",
+              "",
+              "pm.test('Payment has status object', function () {",
+              "    pm.expect(payment).to.have.property('status');",
+              "    pm.expect(payment.status).to.have.property('value');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
